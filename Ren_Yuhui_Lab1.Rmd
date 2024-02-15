@@ -1,0 +1,199 @@
+---
+title: "BIA-658 Lab 1 Exercises"
+author: "Yuhui Ren"
+output: html_document
+---
+**Note**:   
+
+- Submit it as a HTML file (Knit to HTML) as HW1.
+- Make sure you that the `Lab-1-Data/` folder is in the same directory of the Rmd file. 
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+#install.packages("tidyverse") #install packages before loading them if you haven't done so
+#install.packages("igraph")
+library(igraph)
+library(tidyverse)
+```
+
+Q1:  
+Assign [100, -50, 20, -20, 40] to vector c1, [-214, -150, 10, -35, 10] to vector c2.   
+Use the weekdays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] to name both vectors. 
+
+Finally, add up the third element from c1 and second element from c2.
+
+```{r}
+# Write your code here
+c1 <- c(100, -50, 20, -20, 40)
+c2 <- c(-214, -150, 10, -35, 10)
+c_names <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+names(c1) <- c_names
+names(c2) <- c_names
+c1[3]+c2[2]
+```
+
+Q2:   
+Assign value [460, 300, 200, 470, 300, 160] to a vector c1. Use this vector to build a 3x2 matrix. The row name is [“A", "B", "C"], the col name is [“D”, “E”]. 
+
+Next step, get the sum of each col, name it as “Sum_col”, as well as the sum of each row, called “Sum_row”. Then, bind the new row and col to the original matrix.
+
+Finally, select out the element at 4th row and 3nd col in this new matrix.
+
+```{r}
+# Write your code here
+c1 <- c(460, 300, 200, 470, 300, 160)
+m1 <- matrix(c1, byrow=T, nrow=3, ncol=2)
+row.names(m1) <- c('A', 'B', 'C')
+colnames(m1) <- c('D', 'E')
+Sum_col <- colSums(m1)
+m1_new <- rbind(m1, Sum_col)
+Sum_row <- rowSums(m1_new)
+m1_new <- cbind(m1_new, Sum_row)
+m1_new[4,3]
+```
+
+
+Q3:   
+Write a function definition for fun_1().
+
+* One input argument, num_views
+
+* If num_views is greater than 15, the function prints out "Nice job" and returns num_views. 
+
+* Otherwise, the function prints out "Bad for you" and returns 0.
+
+* Finally, call the function and apply it on the following vector: (16, 19, 3, 25, 12, 17, 4)
+
+```{r}
+# Write your code here
+fun_1 <- function(num_views) {
+  if (num_views>15) {
+    print("Nice job")
+    return(num_views)
+  } else {
+    print("Bad for you")
+    return(0)
+  }
+}
+
+for (i in c(16, 19, 3, 25, 12, 17, 4)) {
+  fun_1(i)
+}
+```
+
+Q4:  
+
+The FizzBuzz test is a popular test that companies use to screen applicants who claim they can code. A surprising number of applicants (some claim 99%) would fail the test. 
+
+Write a program in R that prints the numbers from 1 to 100. But for multiples of three print “Fizz” instead of the number and for the multiples of five print “Buzz”. For numbers which are multiples of both three and five print “FizzBuzz”. The output should look like
+
+[1] 1  
+[1] 2  
+[1] "Fizz"  
+[1] 4  
+[1] "Buzz"  
+[1] "Fizz"  
+[1] 7  
+[1] 8  
+[1] "Fizz"  
+[1] "Buzz"  
+[1] 11  
+[1] "Fizz"  
+[1] 13  
+[1] 14  
+[1] "FizzBuzz"  
+[1] 16  
+
+Hint: use %% to check divisibility, e.g., x%%5 == 0 means x is divisible by 5 
+
+```{r}
+# Write your code here
+for (i in seq(1, 100, by=1)) {
+  if (i%%3==0 & i%%5==0) {
+    print("FizzBuzz")
+  } else if (i%%3==0) {
+    print('Fizz')
+  } else if (i%%5==0) {
+    print("Buzz")
+  } else {
+    print(i)
+  }
+}
+
+```
+Q5:   
+Here is your first challenge of Tidyverse. Load the `MarathonData.csv` dataset. Remember the three function we just introduced? Time to apply them on this new set!
+- select all the observations whose Category is M40
+- find the median value of Marathon time and maximum value of km4week within each class, saving them into medianTime and maxWeeks, respectively
+- sort in descending order by that maxWeeks
+- create a bar plot to show the median Marathon time by class
+
+```{r echo = T, message=FALSE}
+MarathonData <- read_csv("C:/Users/zhou/Desktop/BI&A/9 - SECOND SEMESTER/BIA 658/Week 2 Lab 1/Lab-1-Data/MarathonData.csv") #make sure the dataset is in your working directory
+# Write your code here
+MarathonData_M40 <- MarathonData %>%
+  filter(Category == "M40")
+MarathonData_new <- MarathonData  %>%
+  group_by(Class) %>%
+  summarize(medianTime = median(MarathonTime),
+            maxWeeks = max(km4week)) 
+MarathonData_new <- MarathonData_new %>%
+  arrange(desc(maxWeeks))
+
+library(ggplot2)
+ggplot(MarathonData_new,    
+       aes(x=Class, y=medianTime)) + geom_col()
+
+```
+Q6:Explore the organizational collaboration network.
+The network information is stored in Org.csv. 
+
+Tasks:
+-Create a graph object from the csv file. 
+ -- Specify if the edges are directed or undirected (make a judgement yourself).
+ -- Name the nodes with column/row names
+-Plot the network, with the circle layout, node size as 10 and node label as blue
+-Find the diameter of the network (include both your code and result)
+-Find the longest path in the network (include both code and result)
+
+```{r echo = T, message=FALSE}
+# Write your code here
+org <- read_csv(file="Lab-1-Data/Org.csv")
+org_matrix <- as.matrix(org[-1])
+orgg <- graph_from_adjacency_matrix(org_matrix, mode= "directed", add.colnames = NULL)
+plot(orgg, layout=layout.circle, vertex.size=10, vertex.label.color="blue")
+diameter(orgg)
+get_diameter(orgg)
+
+```
+Q7:Explore CEO personal networks 
+The edges are stored in CEOs-EDGES.csv. The network is undirected and weighted.
+Node attributes are stored in CEOs-ARRT.csv. 
+The attributes include node names, gender and whether the company is a Fortune500 company. 
+
+Tasks:
+-Create a graph object from the network edges.
+-Add node attributes: node names, gender  the nodes with the column/role names.
+-Add edge attributes: edge weight
+-Plot the network, with node colors indicating gender, node shape indicating whether the company is a Fortune500 and edge with showing edge weights
+-Answer in one sentence: What can you tell about the network?
+
+```{r echo = T, message=FALSE}
+# Write your code here
+ceo <- read_csv(file="C:/Users/zhou/Desktop/BI&A/9 - SECOND SEMESTER/BIA 658/Week 2 Lab 1/Lab-1-Data/CEOs-EDGES.csv")
+head(ceo)
+ceo_attr <- read_csv(file="C:/Users/zhou/Desktop/BI&A/9 - SECOND SEMESTER/BIA 658/Week 2 Lab 1/Lab-1-Data/CEOs-ARRT.csv")
+head(ceo_attr)
+
+ceo_m <- as.matrix(ceo) #convert dataframe to matrix
+ceo_g<-graph_from_edgelist(ceo_m[,1:2],directed=T)
+E(ceo_g)$weight <- as.numeric(ceo_m[,4]) # add weights
+V(ceo_g)$name <- paste0("CEO", c(1:18)) # add node names
+V(ceo_g)$fortune <- ceo_attr$'Fortune 500' # add fortune
+V(ceo_g)$gender <- ceo_attr$Gender  # add gender
+V(ceo_g)$color <- ifelse(V(ceo_g)$gender == 'M', "lightblue", "orange")
+V(ceo_g)$shape <- ifelse(V(ceo_g)$fortune == 1, "circle", "square")
+plot(ceo_g,layout=layout.fruchterman.reingold, vertices.color=V(ceo_g)$color,
+     edge.arrow.size=0.4, edge.width=E(ceo_g)$weight,
+     vertices.shape=V(ceo_g)$shape)
+# Most nodes are blue means most CEOs are male, and there are more squares than circles means more non-Fortune 500 than Fortune 500. 
+```
