@@ -1,0 +1,118 @@
+---
+title: "BIA-658 Lab 3 Exercises"
+author: "Yuhui Ren"
+output: html_document
+---
+**Note**:   
+
+- Submit it as a HTML file (Knit to HTML) as HW3.
+- Make sure you that the `Lab-3-Data/` folder is in the same directory of the Rmd file. 
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+library(igraph)
+library(tidyverse)
+```
+
+Q1. The books about US politics dataset (Valdis Krebs) consists of co-purchasing network of books about US politics sold by Amazon.com. 
+Nodes are the books.
+Edges represent frequent co-purchasing of books by the same buyers, as indicated by the "customers who bought this book also bought
+these other books" feature on Amazon.
+
+Nodes have been given values "l", "n", or "c" to indicate whether they are
+"liberal", "neutral", or "conservative".  
+
+-use polbooks.gml in the polbooks folder
+-load the data as a graph object in igraph 
+-find the node values  
+-find the size, density and clustering of the network
+-plot the network with node colors representing node values 
+-what can you tell based on the calculated network structural properties and the plot?(Answer the last question in a sentence starting with # to comment it off)
+
+```{r}
+# Write your code here
+
+bookg <- read.graph(file = "C:/Users/zhou/Desktop/BIA 658/Week 9 Lab 3/Lab3-Data/polbooks/polbooks.gml", format = "gml")
+node_values <- V(bookg)$value   # node values
+vcount(bookg)   # number of nodes, size
+ecount(bookg)   # number of edges
+graph.density(bookg)   # density
+transitivity(bookg)    # clustering
+colors <- c("yellow", "red","blue")[as.numeric(as.factor(V(bookg)$value))]
+plot(bookg,layout=layout.fruchterman.reingold,vertex.size=5,vertex.color=colors,
+     vertex.label.cex=0.6,vertex.label.color="black",vertex.label.font=0.5)
+# The figure seems like that there are 3 clusters, the left upper part, middle part and the right lower part, transitivity is about 0.35 means the network has a moderate interconnection.
+
+```
+
+Q2. Use the edge betweenness clustering algorithm to detect communities in the network. 
+- How many communities were detected?
+- What are the sizes of each community?
+- What's the modularity score?
+- Plot the communities in the network with node colors representing their community membership
+
+```{r}
+# Write your code here
+
+book_bc <- edge.betweenness.community(bookg) 
+length(book_bc)    # 5 communities
+membership(book_bc)
+sizes(book_bc)
+modularity(book_bc)
+plot(bookg,layout=layout.fruchterman.reingold,vertex.color=membership(book_bc),vertex.size=8,
+     vertex.label.cex=0.5,vertex.label.color="black")
+
+```
+
+Q3. Use the Label Propagation algorithm to detect communities in the network. 
+- How many communities were detected?
+- What are the sizes of each community?
+- What's the modularity score?
+- Plot the communities in the network with node colors representing their community membership
+```{r}
+# Write your code here
+
+book_lpc <- label.propagation.community(bookg)
+length(book_lpc)
+membership(book_lpc) 
+sizes(book_lpc) 
+modularity(book_lpc)
+plot(bookg,layout=layout.fruchterman.reingold,vertex.color=membership(book_lpc),vertex.size=8,
+     vertex.label.cex=0.5,vertex.label.color="black")
+
+```
+
+Q4. Compare the community detection results of the two algorithms 1) with each other  (i.e., in terms of modularity score, number of communities, community membership), and 2) with the labeled book political tendency (node value). Which algorithm produces better community detection results? Why?
+```{r}
+# Answer in texts
+
+# the modularity score using edge betweenness clustering algorithm is about 0.52, which is a little bit higher than the modularity score from Label Propagation algorithm 0.50. Betweenness algorithm detected more communities, which is 5, but Label Propagation algorithm detected just 3 communities. Considering about community membership, the 5th commuity from betweenness algorithm has only 3 nodes, which I think is very few, and 4th and 1st comunity has 7 and 8 nodes respectively, actually I think maybe they could be merged to other communities to some extent. In contrast, the 3 communities detected by Label Propagation algorithm have 54, 41, 11 members in each community, which I think is making sense. 
+# From the node values, we can know that the ground truth number of communities is 3, which are "l", "n" and "c". And the number of each of these "n", "l" and "c" communities are very similar compared to the results from Label Propagation algorithm, because Label Propagation algorithm also gets 3 communities and there are 54, 41, 11 members in each community. "n" has the least readers, which is similar to the 3rd community (11 members), "c" and "l" have more readers, which are similar to 1st and 2nd community (53 and 41 members respectively).
+
+```
+
+Q5. Create a visualization of the Quaker network in Gephi. Submit the png file with the html file.
+
+This Quaker network contains network data for relationships between seventeenth-century Quakers, originally compiled by John Ladd, Jessica Otis, Christopher N. Warren, and Scott Weingart.
+
+- load quaker-edges.csv in the marvel folder
+- also load quaker-nodes.csv in the same workspace to add node attributes
+- plot the network with a layout of your choice, make sure your network is visualized without overlapping nodes 
+- display labels of the node
+- also display gender of nodes along with labels in the workspace
+- set the size of nodes as its eigenvector centrality
+- scale the node label based on node size; make sure the labels are readable
+- only display nodes with degree >=3
+- detect the communities in the network and use node color to represent nodes' community affiliation
+- export the visualization as a png file
+- Answer the questions below:
+1. How many communities are there in the network?
+2. Who is the most prominent female in the network?
+3. Who has the most important friends in the network?
+```{r}
+# Answer in texts
+# 1. There are 5 communities in the network.
+# 2. Rebecca Travers is the most prominent female, because among all female people, she has most connections to other nodes. 
+# 3. Margaret Fell has the most important friends in the network, because she has the biggest node size among all female people, which means she has highest eigenvector centrality. 
+
+
+```

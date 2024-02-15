@@ -1,0 +1,116 @@
+---
+title: "BIA-658 Lab 4 Exercises"
+author: "Yuhui Ren"
+output: html_document
+---
+**Note**:   
+
+- Submit it as a HTML file (Knit to HTML) as HW4.
+- Make sure you that the `Lab4-Data/` folder is in the same directory of the Rmd file. 
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+#library(igraph) #you can use igraph if you prefer for data processing
+library(sna)
+library(ergm)
+library(tidyverse)
+```
+
+For this exercise, we will use network data describing different communication connections in a team of 17 professionals involved in the design of military installations.The data is stored in the following three files:
+
+•	CRIeq.csv – A 17x17 directed, binary information retrieval network. An edge i -> j in this network indicates that team member i reports going to team member j for information about environmental quality (EQ). 
+
+•	CAIeq.csv – A 17x17 directed, binary information allocation network. An edge i -> j in this network indicates that team member i supplies team member j with information or documentation about environmental quality (EQ). 
+
+•	EXeq.csv – A continuous attribute containing each team member's level of expertise in the area of environmental quality (EQ). A person's level of expertise is calculated as the average of their perceived expertise as reported by all other team members.  
+
+Q1. Read the information retrieval and allocation network. Are information retrieval among these professionals significantly affected by the information allocation? Use both QAP and ERGM to answer the question. Report the parameter estimates and your interpretations. 
+Note: The csv files have no headers, add col_names = F to your read_csv function
+
+```{r}
+crieq <- read_csv(file="C:/Users/zhou/Desktop/BIA 658/Week 12 Lab 4/Lab4-Data/CRIeq.csv", col_names=FALSE) 
+caieq <- read_csv(file="C:/Users/zhou/Desktop/BIA 658/Week 12 Lab 4/Lab4-Data/CAIeq.csv", col_names=FALSE)
+crieqm <- as.matrix(crieq)
+caieqm <- as.matrix(caieq)
+c.qap <- qaptest(list(crieqm,caieqm), gcor, g1=1, g2=2)
+summary(c.qap)
+# With QAP method, the correlation of info retrieval network and info allocation network is about 0.426
+# p(f(perm) >= f(d)): 0.001, which means p-value is very small
+# H0 is that there is no correlation between info retrieval and info allocation ties
+# reject H0 because p-value is small
+# so info retrieval and info allocation are significantly related
+
+crieqmn <- network(crieqm, directed=T,matrix.type = "adjacency")
+caieqmn <- network(caieqm, directed=T,matrix.type = "adjacency")
+c.ergm <- ergm(crieqmn ~ edges + edgecov(caieqmn))       
+summary(c.ergm)
+# ERGM method
+# The p-value for edgecov.caieqmn is <1e-04, lower than 0.05, so this is a small p-value.
+# The estimate 2.7777 is significant, because p-value is small.
+# 2.7777 is positive, so the two networks are related. 
+
+```
+Q2. Are the two networks dense? Are there significant levels of reciprocity and transitivity in the two networks? Test these structural configurations in one model and explain your results verbally. Use gwesp(0.5, fixed=T) to test for transitivity. 
+
+```{r}
+info.re <- ergm(crieqmn ~ edges + mutual + gwesp(0.5, fixed=T), control = control.ergm(seed=1))
+summary(info.re)
+# information retrieval network:
+# density: p-value <1e-04 is small, means -3.1165 is significant, and -3.1165 is negative, means the network is sparse.
+# reciprocity: p-value 0.0845 is higher than 0.05, means -1.0499 is not significant, so the network doesn't have significant levels of reciprocity
+# transitivity: p-value <1e-04 is small, means 1.2649 is significant, so the network has significant levels of transitivity
+
+info.al <- ergm(caieqmn ~ edges + mutual + gwesp(0.5, fixed=T), control = control.ergm(seed=1))
+summary(info.al)
+# infomation allocation network:
+# density: p-value <1e-04 is small, means -2.99318 is significant, and -2.99318 is negative, means the network is sparse. 
+# reciprocity: p-value 0.933 is higher than 0.05, means 0.08061 is not significant, so the network doesn't have significant levels of reciprocity
+# transitivity: p-value <1e-04 is small, means 1.00158 is significant, so the network has significant levels of transitivity
+```
+Q3. Read EXeq.csv into R. Add the expertise vector as a node attribute to the information retrieval network. 
+1) Are people more likely to retrieve information from those with higher expertise? 
+2) Are people more likely to retrieve information from others if they have lower expertise? 
+3) Are people more likely to retrieve information from those with similar levels of expertise as they do? 
+Conduct the tests and explain your results.
+- Create 3 models and add the 3 tests one by one
+- In the first model, include configurations you found significant from Q2 and add the main effect of expertise to test 1).
+- In the second model, if 1) is significant, keep it in the model and add the test of 2). Otherwise, drop the term testing 1) and add the new term to test 2). 
+- Repeat the previous step in the third model when testing 3) by keeping all significant terms and dropping non-significant terms in previous tests.
+Note: The csv files have no headers, add col_names = F to your read_csv function
+
+```{r}
+ex <- read_csv(file="C:/Users/zhou/Desktop/BIA 658/Week 12 Lab 4/Lab4-Data/EXeq.csv", col_names=FALSE)
+c_name <- c('Expertise')
+names(ex) <- c_name
+crieqs <- cbind(crieq, ex)
+crieqmn%v%'Expertise' <- crieqs$Expertise
+
+model1 <- ergm(crieqmn ~ edges + gwesp(0.5, fixed=T) + nodeicov("Expertise"), control=control.ergm(seed=1))
+summary(model1)
+# p-value for nodeicov.Expertise parameter is <1e-04, which means it's significant, and 8.8298 is positive.
+# so people are more likely to retrieve info from those with higher expertise. 
+
+model2 <- ergm(crieqmn ~ edges + gwesp(0.5, fixed=T) + nodeicov("Expertise") + nodeocov("Expertise"), control=control.ergm(seed=1))
+summary(model2)
+# p-value for nodeocov.Expertise is large as 0.410, so it's not significant
+# so people are not likely to retrieve info from those with lower expertise.
+
+model3 <- ergm(crieqmn ~ edges + gwesp(0.5, fixed=T) + nodeicov("Expertise") + absdiff("Expertise"), control=control.ergm(seed=1))
+summary(model3)
+# p-value for absdiff.Expertise is 0.0949 which is large, so no homophily effect.
+# people are not likely to retrieve info from those with similar expertise.
+
+
+```
+Q4. Construct the final model to predict tie formation in the information retrieval network, keeping only significant configurations/effects you found through Q1-3. Test the goodness-of-fit of the model in terms of in & out degree distribution. Plot the goodness-of-fit results. Report and interpret your findings. 
+
+```{r}
+model4 <- ergm(crieqmn ~ edges + gwesp(0.5, fixed=T) + nodeicov("Expertise"), control=control.ergm(seed=1))
+summary(model4)
+
+model4.gof <- gof(model4 ~ idegree + odegree)
+model4.gof
+plot(model4.gof)
+# Black solid line lies between two grey lines, which means the confidence interval of corresponding values in simulated networks. This is evidence that the model fits our actual network data pretty well.
+# P values are high, indicating no significant difference between the observed data and data simulated by the model.
+
+```
